@@ -10,7 +10,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-green.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Live site:** https://amanpundhir.github.io/mumbai-aeropulse/ (landing page) · https://amanpundhir.github.io/mumbai-aeropulse/app/ (dashboard)
+**Live site:** https://amanpundhir.github.io/mumbai-aeropulse/ 
 
 An end-to-end, publication-grade environmental intelligence and civic action platform built for the **Google Mumbai Air Quality Mapping & Forecasting Challenge** on Zindi, organized in partnership with **Google**, **Beyond**, and **ClimateVerse** (CrisisReady at Harvard University / Mittal South Asia Institute / Harvard Data Science Initiative).
 
@@ -27,8 +27,7 @@ Mumbai AeroPulse bridges the critical "last mile" between raw tabular machine le
 6. [Offline ML Forecasting Engine](#offline-ml-forecasting-engine)
 7. [Repository & Code Structure](#repository--code-structure)
 8. [Automated Verification & Smoke Checks](#automated-verification--smoke-checks)
-9. [Creative Track Competition Package](#creative-track-competition-package)
-10. [Licensing & Data Attribution](#licensing--data-attribution)
+9. [Licensing & Data Attribution](#licensing--data-attribution)
 
 ---
 
@@ -291,24 +290,8 @@ Launches a preview server, performs an HTTP smoke test, and confirms clean DOM m
 
 ---
 
-## 9. Creative Track Competition Package
 
-The complete creative track submission targeting the **$500 USD "Most Creative Submission Track"** award (Deadline: **13 November 2026 at 18:29 GMT / 23:59:59 IST**) is organized in `creative_submission_package.md`. It covers all 10 fields of the official Google Form ([https://forms.gle/uLpzqYfJm9AjTvjT9](https://forms.gle/uLpzqYfJm9AjTvjT9)):
-
-- **Field 1**: Project Title
-- **Field 2**: Track & Eligibility Confirmation
-- **Field 3**: Executive Summary & Elevator Pitch (173 words, within 150–250 limit)
-- **Field 4**: Problem Statement & Mumbai Coastal Airshed Dynamics
-- **Field 5**: Technical Innovation & Methodology
-- **Field 6**: Google Ecosystem Integration (Google Maps, Gemini AI, Google Colab / Cloud)
-- **Field 7**: Dual-Perspective Civic Decision Support (BMC vs Citizen Guidance)
-- **Field 8**: User Experience & Dashboard Architecture
-- **Field 9**: Real-World Impact, Scalability & Policy Roadmap
-- **Field 10**: Deliverables & Verification Links
-
----
-
-## 10. Licensing & Data Attribution
+## 9. Licensing & Data Attribution
 
 - **Meteorological Data**: Weather data provided by **[Open-Meteo.com](https://open-meteo.com/)** under the **Creative Commons Attribution 4.0 International (CC-BY 4.0)** license.
 - **Air Quality Data**: Continuous Ambient Air Quality Monitoring Station (CAAQMS) observations provided by the **Central Pollution Control Board (CPCB)**, **Maharashtra Pollution Control Board (MPCB)**, and the **Indian Institute of Tropical Meteorology (IITM)**.
