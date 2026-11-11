@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en" data-type="software" data-radius="soft" data-ground="sky" data-buttons="tonal" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mumbai AeroPulse: PM2.5 forecasts and ward advisories for Mumbai</title>
+<meta name="description" content="Hourly fine-dust forecasts for four Mumbai monitoring stations, turned into a BMC action plan and a health advisory for residents.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mumbai AeroPulse: PM2.5 forecasts for Mumbai wards">
+<meta property="og:description" content="Forecasts for four Mumbai stations, with a ward action plan and a health advisory.">
+<meta property="og:image" content="share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1c1c1c">
+<!-- <link rel="canonical" href="https://[the project's domain]/"> -->
+<meta name="site-kind" content="software">
+<meta name="page-type" content="software">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400..700&family=Funnel+Sans:wght@400..600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/ui/cards.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/backgrounds/backgrounds.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<style>
+:root {
+  --p-bg: #1c1c1c; --p-surface: #262626; --p-ink: #f1f1ef; --p-muted: #9a9b96;
+  --p-accent: #8fa68e; --p-accent-ink: #1c1c1c; --p-action: #8fa68e; --p-action-ink: #1c1c1c;
+  --p-inv-bg: #c8c5ba; --p-inv-surface: #bab8ae; --p-inv-ink: #1c1c1c; --p-inv-muted: #454442;
+  --p-inv-accent: #1c1c1c; --p-inv-accent-ink: #c8c5ba; --p-inv-action: #1c1c1c; --p-inv-action-ink: #c8c5ba;
+  --font-display: "Funnel Display", system-ui, sans-serif;
+  --font-text: "Funnel Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 400;
+  --display-tracking: -0.03em;
+  --display-tracking-xl: -0.04em;
+  --ly-scale: 0.98;
+}
+</style>
+<link rel="stylesheet" href="assets/ui/base.css">
+<script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+<script src="assets/backgrounds/backgrounds.js"></script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/counter-rolls/moment.js">
+<!-- page CSS: only inside the visuals (the AeroPulse windows and the card panels) -->
+<style>
+  /* CPCB PM2.5 bands, the product's own state colours */
+  :root { --aq-good: #4caf50; --aq-sat: #9ccc65; --aq-mod: #f2b632; --aq-poor: #f08c3a; --aq-vpoor: #e5534b; }
+
+  /* the AeroPulse window, drawn as live HTML */
+  .aw { --w-bg: #1c1c1c; --w-side: #181818; --w-ink: #f1f1ef; --w-muted: #9a9b96; --w-line: #363633;
+        font: 13px/1.4 var(--font-text); color: var(--w-ink); background: var(--w-bg); border-radius: 14px;
+        border: 1px solid #363633; box-shadow: 0 24px 60px -20px rgba(0,0,0,.7); overflow: hidden;
+        display: grid; grid-template-rows: 36px 1fr; }
+  .aw__bar { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #2e2e2c; background: var(--w-side); color: #d9d9d4; font-size: 12px; }
+  .aw__dots { display: inline-flex; gap: 6px; } .aw__dots i { width: 9px; height: 9px; border-radius: 50%; background: #4a4a47; }
+  .aw__bar b { font-weight: 500; color: #fff; }
+  .aw__body { display: grid; grid-template-columns: 148px 1fr; min-height: 0; }
+  .aw__side { border-right: 1px solid #2e2e2c; background: var(--w-side); color: #bdbdb7; padding: 12px 10px; display: grid; align-content: start; gap: 2px; font-size: 12.5px; }
+  .aw__side span { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 7px; }
+  .aw__side span.is-on { background: #2b2b29; color: #fff; }
+  .aw__side em { font-style: normal; margin-left: auto; font-family: var(--font-mono); font-size: 11.5px; color: #8d8d88; }
+  .aw__side .lbl { color: #7c7c77; font-size: 11.5px; padding-top: 14px; }
+  .aw__side i.d { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .aw__main { padding: 18px 20px; min-width: 0; display: grid; align-content: start; gap: 14px; }
+  .aw__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .aw__head h4 { margin: 0; font: 500 16px/1.2 var(--font-display); letter-spacing: -.01em; }
+  .aw__head span { color: var(--w-muted); font-size: 12px; }
+  .aw__kpis { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+  .aw__kpi { padding: 2px 0 2px 12px; border-left: 2px solid #8fa68e; }
+  .aw__kpi small { display: block; color: var(--w-muted); font-size: 11.5px; }
+  .aw__kpi b { display: block; font: 500 22px/1.2 var(--font-display); letter-spacing: -.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .aw__kpi b sub { font: 400 11px var(--font-text); color: var(--w-muted); vertical-align: baseline; margin-left: 3px; }
+  .aw__table { background: #242423; border: 1px solid var(--w-line); border-radius: 10px; overflow: hidden; }
+  .aw__tr { display: grid; grid-template-columns: minmax(0, 1.6fr) 64px 104px; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--w-line); }
+  .aw__tr:first-child { border-top: 0; color: var(--w-muted); font-size: 11.5px; padding-block: 8px; background: #2b2b29; }
+  .aw__tr.is-on { box-shadow: inset 3px 0 0 #8fa68e; background: #2a3229; }
+  .aw__tr b { font-weight: 500; display: block; } .aw__tr small { color: var(--w-muted); font-size: 11.5px; }
+  .aw__tr .n { font-family: var(--font-mono); font-size: 13px; text-align: right; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; white-space: nowrap; background: #2b2b29; color: #c9c9c4; justify-self: start; }
+  .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+  .chip--sat { --c: var(--aq-sat); background: #283321; color: #b8da8e; } .chip--mod { --c: var(--aq-mod); background: #3a311a; color: #f2c96a; } .chip--vpoor { --c: var(--aq-vpoor); background: #3f2120; color: #f29089; }
+  .chip--poor { --c: var(--aq-poor); }
+
+  /* hero: the window sits on the silk ground, cut by the frame's right and bottom edges */
+  .hero--split .hero__media { background: #232322; }
+  .hero__media > .stage { position: absolute; inset: 0; z-index: 1; }
+  .hero__media .aw { position: absolute; left: 40px; top: 48px; width: 680px; height: 640px; z-index: 1; }
+  .hero__media > .ly-float { z-index: 2; }
+  .ly-float .d { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--aq-vpoor); margin-right: 6px; }
+  @media (max-width: 1023px) { .hero__media .aw { left: 24px; top: 24px; width: 620px; } }
+  @media (max-width: 639px) { .hero__media .aw { left: 16px; top: 16px; width: 560px; } .hero__media .aw .aw__side { display: none; } .hero__media .aw .aw__body { grid-template-columns: 1fr; } }
+
+  /* app-frame (sections-library.md, app-frame) */
+  .app.ui { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); margin-top: var(--s-7); background: var(--u-bg); border: 1px solid var(--u-border); border-radius: var(--u-r); box-shadow: var(--u-shadow); --fx-bg: #1c1c1c; --fx-ink: #f1f1ef; --fx-muted: #9a9b96; --fx-accent: #8fa68e; }
+  .app > .app__pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+  .app > .app__pane + .app__pane { border-left: 1px solid var(--u-line); }
+  .app > .app__pane::after { content: ""; position: absolute; inset: auto 0 0 0; height: 64px; background: linear-gradient(transparent, var(--u-bg)); pointer-events: none; }
+  @media (min-width: 1024px) and (max-width: 1279px) { .app.ui { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); } }
+  @media (max-width: 1023px) {
+    .app.ui { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .app > .app__pane--list { max-height: 252px; }
+    .app > .app__pane--list::after { display: none; }
+    .app > .app__pane + .app__pane { border-left: 0; border-top: 1px solid var(--u-line); }
+  }
+  @media (max-width: 639px) {
+    .app.ui { grid-template-rows: minmax(0, 1fr); }
+    .app > .app__pane--list { display: none; }
+    .app > .app__pane + .app__pane { border-top: 0; }
+  }
+  .app { font: 13px/1.4 var(--font-text); color: #f1f1ef; }
+  .ap-bar { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--u-line); font-size: 12.5px; color: #9a9b96; background: #181818; }
+  .ap-bar b { color: #f1f1ef; font-weight: 500; }
+  .ap-grp { padding: 12px 16px 4px; font-size: 11.5px; color: #9a9b96; }
+  .ap-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--u-line); }
+  .ap-row.is-on { box-shadow: inset 3px 0 0 #8fa68e; } .ap-row.is-on b { font-weight: 600; }
+  .ap-row i { width: 8px; height: 8px; border-radius: 50%; background: var(--c, #999); }
+  .ap-row b { display: block; font-weight: 500; } .ap-row small { color: #9a9b96; font-size: 11.5px; }
+  .ap-row .n { font-family: var(--font-mono); font-size: 12.5px; }
+  .ap-tag { font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 6px; background: #2b2b29; color: #c9c9c4; white-space: nowrap; }
+  .ap-tag--now { background: #3f2120; color: #f29089; } .ap-tag--soon { background: #3a311a; color: #f2c96a; }
+  .ap-open { padding: 20px 24px; display: grid; gap: 16px; }
+  .ap-open__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .ap-open__head h4 { margin: 0; font: 500 18px/1.2 var(--font-display); }
+  .ap-open__head small { color: #9a9b96; font-size: 12px; }
+  .ap-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .ap-figs div { border: 1px solid #363633; border-radius: 10px; padding: 10px 12px; background: #242423; }
+  .ap-figs small { display: block; color: #9a9b96; font-size: 11.5px; }
+  .ap-figs b { display: block; margin-top: 4px; font: 500 22px/1.15 var(--font-display); font-variant-numeric: tabular-nums; }
+  .ap-figs b sub { font: 400 11px var(--font-text); color: #9a9b96; vertical-align: baseline; margin-left: 3px; }
+  @media (max-width: 639px) { .ap-figs b sub { display: block; margin: 4px 0 0; } }
+  .ap-chart { border: 1px solid #363633; border-radius: 10px; background: #242423; padding: 12px 12px 8px; }
+  .ap-chart svg { display: block; width: 100%; height: auto; }
+  .ap-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 8px 4px 0; font-size: 11.5px; color: #9a9b96; }
+  .ap-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .ap-legend i { width: 14px; height: 2px; background: var(--c); }
+  .ap-legend i.dash { background: repeating-linear-gradient(90deg, var(--c) 0 4px, transparent 4px 7px); }
+
+  /* feature cards: small product panels on the card ground */
+  #features .panel { --p-h: 336px; }
+  @media (min-width: 640px) and (max-width: 1023px) { #features .panel { --p-h: 400px; } }
+  @media (max-width: 639px) { #features .panel { --p-h: 180px; } }
+  .mini { font: 13px/1.4 var(--font-text); color: #f1f1ef; background: #1c1c1c; border-radius: 12px; border: 1px solid #363633; box-shadow: 0 16px 40px -12px rgba(0,0,0,.55); padding: 14px 16px; display: grid; gap: 10px; }
+  .mini h5 { margin: 0; font: 500 14px/1.3 var(--font-display); display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .mini h5 small { font: 400 11.5px var(--font-text); color: #9a9b96; }
+  .mini__row { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding-top: 10px; border-top: 1px solid #363633; }
+  .mini__row svg { width: 16px; height: 16px; margin-top: 1px; }
+  .mini__row b { font-weight: 500; display: block; } .mini__row .n { font-family: var(--font-mono); font-size: 13px; } .mini__row small { color: #9a9b96; font-size: 11.5px; }
+  .mini__big { font: 500 30px/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .mini__big sub { font: 400 12px var(--font-text); color: #9a9b96; vertical-align: baseline; margin-left: 4px; }
+  .mini__spark svg { display: block; width: 100%; height: 72px; }
+  .mini__tabs { display: flex; gap: 6px; } .mini__tabs span { padding: 3px 9px; border-radius: 999px; font-size: 11.5px; border: 1px solid #363633; color: #c9c9c4; }
+  .mini__tabs span.is-on { background: #8fa68e; color: #1c1c1c; border-color: #8fa68e; }
+  .mini p { margin: 0; font-size: 13px; line-height: 1.5; }
+
+  .svc { list-style: none; margin: var(--s-6) 0 0; padding: 0; display: grid; gap: var(--s-4); }
+  .svc li { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); font-weight: 500; max-width: 360px; padding-bottom: var(--s-4); border-bottom: 1px solid var(--line); }
+  .svc li small { display: block; font-weight: 400; color: var(--muted); font-size: var(--t-small); }
+  .svc .ic-tile { width: 44px; height: 44px; flex: none; }
+  @media (max-width: 639px) { .svc { gap: var(--s-3); margin-top: var(--s-5); } .svc li { padding-bottom: var(--s-3); } .svc li small { display: none; } .svc .ic-tile { width: 36px; height: 36px; } }
+  /* below 1024 the questions take two screens: the intro and the services, then the answers */
+  @media (max-width: 639px) { #questions > .wrap > .grid { display: contents; } }
+  @media (min-width: 640px) and (max-width: 1023px) {
+    #questions { --h: 2; }
+    #questions > .wrap { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); row-gap: calc(var(--padt) + var(--padb) + var(--bar)); }
+    #questions > .wrap > .grid { display: contents; }
+  }
+  /* the map frame flattens below the desktop so the section stays one screen */
+  @media (max-width: 1023px) { #map .frame { --ratio: 75%; } }
+  @media (max-width: 639px) { #map .frame { --ratio: 80%; } }
+  /* the station list shows its first rows only where it sits above the open station */
+  @media (max-width: 1023px) { .app .ui-list > :nth-child(n+7) { display: none; } }
+  /* the map split: a capture of the dashboard's map */
+  #map .frame__img { object-position: 50% 45%; }
+</style>
+</head>
+<body>
+<!-- type: software (an AI air-quality forecasting dashboard)
+     deal: hero split (the AeroPulse window on the silk-folds ground), nav nav-mega, close close-type, footer footer-columns,
+     rhythm space, buttons tonal, mark initial, ground sky, palette charcoal-room-sage, type funnel
+     effect: silk-folds in the hero frame; card grounds: fluted-glass (still) in #features
+     moments: counter-rolls in #record (its own statement section) -->
+
+<header class="nav">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#top">Skip to content</a>
+    <a class="nav__logo" href="#top"><span class="mark mark--initial" aria-hidden="true">A</span>Mumbai AeroPulse</a>
+    <nav class="nav__links" aria-label="Main">
+      <div class="nav__item">
+        <a class="nav__link" href="#features">Product <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <div class="menu-col span-3">
+              <p class="t-label">Forecasts</p>
+              <a href="#forecast">Station forecast<span>Next 48 hours, two models</span></a>
+              <a href="#features">Weather behind the haze<span>Ventilation index, hour by hour</span></a>
+              <a href="#map">Station map<span>Four monitors, one view</span></a>
+            </div>
+            <div class="menu-col span-3">
+              <p class="t-label">Advisories</p>
+              <a href="#features">BMC action plan<span>Dated tasks on named roads</span></a>
+              <a href="#features">Health advisory<span>Plain advice for residents</span></a>
+            </div>
+            <a class="menu-card span-3 start-10" href="#record">
+              <div class="panel"><img class="frame__img" src="shots/map.png" alt="The AeroPulse station map of Mumbai with four coloured monitors" loading="lazy"></div>
+              <span class="t-card">The data behind it</span>
+              <span class="t-small muted">615 days of readings, 4 stations</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="nav__item"><a class="nav__link" href="#forecast">Forecast</a></div>
+      <div class="nav__item"><a class="nav__link" href="#map">Map</a></div>
+      <div class="nav__item"><a class="nav__link" href="#record">Data</a></div>
+      <div class="nav__item"><a class="nav__link" href="#questions">Questions</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="btn btn--primary" href="app/">Open the dashboard</a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero hero--split" data-enter aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text grid hero__grid">
+      <div class="hero__text span-5">
+        <p class="hero__kicker"><span class="dot" aria-hidden="true"></span>Readings from 10 Nov 2026, 09:00 IST</p>
+        <h1 id="hero-h">PM2.5 forecasts for Mumbai wards</h1>
+        <p class="hero__lead">AeroPulse forecasts fine dust at four monitoring stations for the next 48 hours, then turns each forecast into a ward action plan and a health advisory.</p>
+        <div class="btn-row"><a class="btn btn--primary" href="app/">Open the dashboard<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a><a class="btn btn--secondary" href="#forecast">See the forecast</a></div>
+      </div>
+      <div class="hero__media span-6 start-7" data-fx="silk-folds" data-fx-seed="7" role="img" aria-label="The AeroPulse dashboard: four Mumbai stations with their PM2.5 readings, Malad West highest at 190 micrograms, Very Poor">
+        <div class="stage stage--fade-br"><div class="aw ui ui-aw" aria-hidden="true">
+          <div class="aw__bar"><span class="aw__dots"><i></i><i></i><i></i></span><span>AeroPulse / <b>Overview</b></span></div>
+          <div class="aw__body">
+            <div class="aw__side">
+              <span class="is-on">Overview</span><span>Advisory</span><span>Forecast</span><span>Weather</span><span>Map</span>
+              <span class="lbl">Stations</span>
+              <span><i class="d" style="background:var(--aq-vpoor)"></i>Malad West<em>190</em></span>
+              <span><i class="d" style="background:var(--aq-mod)"></i>Shivaji Nagar<em>77</em></span>
+              <span><i class="d" style="background:var(--aq-sat)"></i>Borivali East<em>50</em></span>
+              <span><i class="d" style="background:var(--aq-sat)"></i>Byculla<em>44</em></span>
+            </div>
+            <div class="aw__main">
+              <div class="aw__head"><h4>Air quality across Mumbai</h4><span>10 Nov, 09:00 IST</span></div>
+              <div class="aw__kpis">
+                <div class="aw__kpi"><small>City average</small><b>90.3<sub>µg/m³</sub></b></div>
+                <div class="aw__kpi"><small>Highest now</small><b>189.9<sub>Malad W</sub></b></div>
+                <div class="aw__kpi"><small>Peak, next 48 h</small><b>107<sub>Shivaji N</sub></b></div>
+              </div>
+              <div class="aw__table">
+                <div class="aw__tr"><span>Station</span><span class="n">PM2.5</span><span>Category</span></div>
+                <div class="aw__tr is-on"><span><b>Malad West</b><small>Ward P-North · IITM</small></span><span class="n">189.9</span><span class="chip chip--vpoor">Very Poor</span></div>
+                <div class="aw__tr"><span><b>Shivaji Nagar</b><small>Ward M-East · BMC</small></span><span class="n">77.0</span><span class="chip chip--mod">Moderate</span></div>
+                <div class="aw__tr"><span><b>Borivali East</b><small>Ward R-Central · IITM</small></span><span class="n">50.4</span><span class="chip chip--sat">Satisfactory</span></div>
+                <div class="aw__tr"><span><b>Byculla</b><small>Ward E · BMC</small></span><span class="n">43.8</span><span class="chip chip--sat">Satisfactory</span></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <div class="ly-float">
+          <div class="ly-float__row"><span class="ly-live">Malad West</span><span>09:00 IST</span></div>
+          <div class="ly-float__title"><span class="d" aria-hidden="true"></span>190 µg/m³, Very Poor</div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="section" id="forecast" aria-labelledby="forecast-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-5"><h2 id="forecast-h">A 48-hour forecast for every station</h2></div>
+        <div class="span-6 start-7 stack-4">
+          <p>Pick a station on the left. The chart shows the last 24 hours as measured, then both model forecasts against the CPCB bands, with the ward’s tasks underneath.</p>
+          <a class="link" href="app/">Open Malad West in the dashboard</a>
+        </div>
+      </div>
+      <div class="ui app fill" role="img" aria-label="AeroPulse with Malad West open: 190 micrograms now, the measured last day and two forecasts falling to about 50 by tonight">
+        <div class="app__pane app__pane--list" aria-hidden="true"><div class="ui ui-list">
+          <div class="ap-bar"><b>Stations</b><span>4 monitors</span></div>
+          <div class="ap-row is-on" style="--c:var(--aq-vpoor)"><i></i><span><b>Malad West</b><small>Peak next 48 h: 90 at 00:00</small></span><span class="n">189.9</span></div>
+          <div class="ap-row" style="--c:var(--aq-mod)"><i></i><span><b>Shivaji Nagar</b><small>Peak next 48 h: 107 at 22:00</small></span><span class="n">77.0</span></div>
+          <div class="ap-row" style="--c:var(--aq-sat)"><i></i><span><b>Borivali East</b><small>Peak next 48 h: 66 at 00:00</small></span><span class="n">50.4</span></div>
+          <div class="ap-row" style="--c:var(--aq-sat)"><i></i><span><b>Byculla</b><small>Peak next 48 h: 48 at 07:00</small></span><span class="n">43.8</span></div>
+          <div class="ap-grp">Action plan · Ward P-North</div>
+          <div class="ap-row" style="--c:#e5534b"><i></i><span><b>Clean-construction checks, Mindspace</b><small>New Link Road &amp; Chincholi Bunder</small></span><span class="ap-tag ap-tag--now">0–2 h</span></div>
+          <div class="ap-row" style="--c:#f2b632"><i></i><span><b>Mist cannons at SV Road metro</b><small>SV Road &amp; Marve Road</small></span><span class="ap-tag ap-tag--soon">2–6 h</span></div>
+          <div class="ap-row" style="--c:#9a9b96"><i></i><span><b>Patrol for scrap burning</b><small>Malad Creek, Marve coast</small></span><span class="ap-tag">24 h</span></div>
+          <div class="ap-grp">Advice for residents</div>
+          <div class="ap-row" style="--c:#8fa68e"><i></i><span><b>Children and older adults</b><small>Stay indoors until the evening</small></span><span class="ap-tag">Now</span></div>
+          <div class="ap-row" style="--c:#8fa68e"><i></i><span><b>Asthma and heart conditions</b><small>Keep reliever medicine close</small></span><span class="ap-tag">Now</span></div>
+        </div></div>
+        <div class="app__pane app__pane--open" aria-hidden="true">
+          <div class="ap-open ui ui-open">
+            <div class="ap-open__head">
+              <div><h4>Malad West</h4><small>Ward P-North · Indian Institute of Tropical Meteorology</small></div>
+              <span class="chip chip--vpoor">Very Poor</span>
+            </div>
+            <div class="ap-figs">
+              <div><small>Now</small><b>189.9<sub>µg/m³</sub></b></div>
+              <div><small>Next 24 h, average</small><b>52.8<sub>µg/m³</sub></b></div>
+              <div><small>Peak, next 48 h</small><b>90.2<sub>00:00, 11 Nov</sub></b></div>
+            </div>
+            <div class="ap-chart">
+              <svg viewBox="-34 -8 682 270" aria-hidden="true">
+                <rect x="0" y="210" width="640" height="30" fill="#4caf50" fill-opacity=".12"/>
+                <rect x="0" y="180" width="640" height="30" fill="#9ccc65" fill-opacity=".12"/>
+                <rect x="0" y="150" width="640" height="30" fill="#f2b632" fill-opacity=".12"/>
+                <rect x="0" y="120" width="640" height="30" fill="#f08c3a" fill-opacity=".12"/>
+                <rect x="0" y="0" width="640" height="120" fill="#e5534b" fill-opacity=".12"/>
+                <g fill="#9a9b96" font-size="11" font-family="DM Mono, monospace" text-anchor="end">
+                  <text x="-6" y="214">30</text><text x="-6" y="184">60</text><text x="-6" y="154">90</text><text x="-6" y="124">120</text><text x="-6" y="4">240</text>
+                </g>
+                <g fill="#9a9b96" font-size="11" font-family="Funnel Sans, sans-serif">
+                  <text x="0" y="258">9 Nov, 09:00</text><text x="213" y="258" text-anchor="middle">Now</text><text x="640" y="258" text-anchor="end">12 Nov, 09:00</text>
+                </g>
+                <line x1="213.3" y1="0" x2="213.3" y2="240" stroke="#9a9b96" stroke-width="1" stroke-dasharray="3 3"/>
+                <path d="M0 195L8.9 178.1L26.7 183.5L35.6 194.3L44.4 200.8L53.3 204.5L62.2 207.6L71.1 204.1L80 207.9L88.9 197.8L97.8 176.1L106.7 167.4L115.6 157.4L124.4 120.6L151.1 0L160 5.6L168.9 13.5L177.8 0L186.7 0L195.6 33.7L204.4 45.7L213.3 50.1" fill="none" stroke="#f1f1ef" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M222.2 177.5L231.1 187.2L240 193.7L248.9 187.5L257.8 187.3L266.7 188.5L275.6 189.1L284.4 191.4L293.3 186.9L302.2 185.4L311.1 180L320 172.3L328.9 164.3L337.8 163.4L346.7 149.8L355.6 168L364.4 166.6L373.3 168.8L382.2 172.4L391.1 175L400 179.2L408.9 179.5L417.8 177.3L426.7 174.8L435.6 177.5L444.4 187.2L453.3 193.7L462.2 187.5L471.1 187.3L480 188.5L488.9 189.1L497.8 191.4L506.7 186.9L515.6 185.4L524.4 180L533.3 172.3L542.2 164.3L551.1 163.4L560 149.8L568.9 168L577.8 166.6L586.7 168.8L595.6 172.4L604.4 175L613.3 179.2L622.2 179.5L631.1 177.3L640 174.8" fill="none" stroke="#5fb8ab" stroke-width="2" stroke-dasharray="5 3" stroke-linejoin="round"/>
+                <path d="M222.2 187L231.1 195.1L240 201.2L248.9 195.7L257.8 195.3L266.7 196.5L275.6 197.2L284.4 198.9L293.3 195.2L302.2 193.7L311.1 189.2L320 182.5L328.9 175.8L337.8 174.8L346.7 162.4L355.6 178.8L364.4 178.1L373.3 179.9L382.2 183L391.1 185.2L400 188.3L408.9 188.4L417.8 186.6L426.7 184.6L435.6 187L444.4 195.1L453.3 201.2L462.2 195.7L471.1 195.3L480 196.5L488.9 197.2L497.8 198.9L506.7 195.2L515.6 193.7L524.4 189.2L533.3 182.5L542.2 175.8L551.1 174.8L560 162.4L568.9 178.8L577.8 178.1L586.7 179.9L595.6 183L604.4 185.2L613.3 188.3L622.2 188.4L631.1 186.6L640 184.6" fill="none" stroke="#7aa7dc" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+              <div class="ap-legend"><span style="--c:#f1f1ef"><i></i>Measured</span><span style="--c:#7aa7dc"><i></i>Submission 1, CatBoost + LightGBM</span><span style="--c:#5fb8ab"><i class="dash"></i>Submission 2, CatBoost</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section g2" id="features" aria-labelledby="features-h">
+    <div class="wrap">
+      <div class="group">
+        <div class="section-head">
+          <h2 id="features-h">What AeroPulse does with a forecast. <span class="muted">Four jobs, one station at a time.</span></h2>
+        </div>
+        <div class="grid">
+          <article class="card card--row card--open span-6">
+            <h3>Blends two forecasting models</h3>
+            <p>Submission 1 averages CatBoost and LightGBM. Submission 2 is CatBoost alone, the more cautious of the two.</p>
+            <div class="panel" data-fx="fluted-glass" data-fx-seed="21" data-fx-params='{"drift":0}'>
+              <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:420px;--ax:max(24px, 50% - 210px);--ay:48px;--ay-sm:24px">
+                <div class="mini ui ui-mini" role="img" aria-label="Malad West, peak in the next 48 hours: Submission 1 forecasts 77.6, Submission 2 forecasts 90.2, both at midnight">
+                  <h5>Peak, next 48 h · Malad West <small>11 Nov, 00:00</small></h5>
+                  <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#7aa7dc" stroke-width="2"><path d="M2 8h12"/></svg><span><b>Submission 1</b><small>CatBoost + LightGBM, 50/50</small></span><span class="n">77.6</span></div>
+                  <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#5fb8ab" stroke-width="2" stroke-dasharray="3 2"><path d="M2 8h12"/></svg><span><b>Submission 2</b><small>CatBoost alone</small></span><span class="n">90.2</span></div>
+                  <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#9a9b96" stroke-width="1.6"><path d="M4 5h8M4 11h8M8 3v10"/></svg><span><b>Average gap</b><small>Scored window, 11 to 12 Nov</small></span><span class="n">9.5</span></div>
+                </div>
+              </div></div>
+            </div>
+          </article>
+          <article class="card card--row card--open span-6">
+            <h3>Reads the weather behind each forecast</h3>
+            <p>Boundary-layer height times wind speed gives a ventilation index. At 09:00 on 10 November the layer sat at 170 m.</p>
+            <div class="panel" data-fx="fluted-glass" data-fx-seed="34" data-fx-params='{"drift":0}'>
+              <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:400px;--ax:max(24px, 50% - 200px);--ay:48px;--ay-sm:24px">
+                <div class="mini ui ui-mini" role="img" aria-label="Ventilation index 1,173 square metres a second at 09:00, rising to 20,292 by 11:00">
+                  <h5>Ventilation index <small>Open-Meteo · city-wide</small></h5>
+                  <div class="mini__big">1,173<sub>m²/s at 09:00</sub></div>
+                  <div class="mini__spark"><svg viewBox="0 0 360 72" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M0 70.7L40 70.8L80 69.8L120 69.0L160 69.4L200 69.0L240 68.0L280 49.1L320 2.0L360 15.8V72H0Z" fill="#8fa68e" fill-opacity=".18"/>
+                    <path d="M0 70.7L40 70.8L80 69.8L120 69.0L160 69.4L200 69.0L240 68.0L280 49.1L320 2.0L360 15.8" fill="none" stroke="#8fa68e" stroke-width="2"/>
+                  </svg></div>
+                  <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#8fa68e" stroke-width="1.6"><path d="M2 11h7a2 2 0 1 0-2-2M2 7h10a2 2 0 1 0-2-2"/></svg><span><b>Mixing height 170 m</b><small>Rises to 2,280 m by 11:00</small></span><span class="ap-tag">Weak</span></div>
+                </div>
+              </div></div>
+            </div>
+          </article>
+        </div>
+      </div>
+      <div class="grid">
+        <article class="card card--row card--open span-6">
+          <h3>Writes a BMC action plan</h3>
+          <p>Each ward gets dated tasks on named roads, from mist cannons on SV Road to sweepers on Byculla Bridge.</p>
+          <div class="panel" data-fx="fluted-glass" data-fx-seed="47" data-fx-params='{"drift":0}'>
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:420px;--ax:max(24px, 50% - 210px);--ay:48px;--ay-sm:24px">
+              <div class="mini ui ui-mini" role="img" aria-label="The Ward P-North action plan: three tasks, the first due within two hours">
+                <h5>Action plan · Ward P-North <small>Priority 9 of 10</small></h5>
+                <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#f29089" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5"/></svg><span><b>Clean-construction checks</b><small>Mindspace, New Link Road</small></span><span class="ap-tag ap-tag--now">0–2 h</span></div>
+                <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#f2c96a" stroke-width="1.6"><path d="M3 12c2-6 8-6 10 0M8 3v3"/></svg><span><b>Mist cannons at SV Road</b><small>SV Road &amp; Marve Road</small></span><span class="ap-tag ap-tag--soon">2–6 h</span></div>
+                <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#9a9b96" stroke-width="1.6"><path d="M2 13l4-9 3 6 2-3 3 6"/></svg><span><b>Scrap-burning patrol</b><small>Malad Creek, Marve coast</small></span><span class="ap-tag">24 h</span></div>
+              </div>
+            </div></div>
+          </div>
+        </article>
+        <article class="card card--row card--open span-6">
+          <h3>Writes a health advisory</h3>
+          <p>Residents read who should stay in and for how long, with a tab for children, older adults and asthma.</p>
+          <div class="panel" data-fx="fluted-glass" data-fx-seed="58" data-fx-params='{"drift":0}'>
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max:420px;--ax:max(24px, 50% - 210px);--ay:48px;--ay-sm:24px">
+              <div class="mini ui ui-mini" role="img" aria-label="The advice for residents near Malad West, on the children tab">
+                <h5>Advice near Malad West <span class="chip chip--vpoor">Very Poor</span></h5>
+                <div class="mini__tabs"><span>Everyone</span><span class="is-on">Children</span><span>Older adults</span><span>Asthma</span></div>
+                <p>Keep children indoors this morning and skip outdoor sport. Levels are forecast to fall below 60 by the evening.</p>
+                <div class="mini__row"><svg viewBox="0 0 16 16" fill="none" stroke="#8fa68e" stroke-width="1.6"><path d="M3 8.5l3 3 7-7"/></svg><span><b>Written from the forecast and the weather</b><small>Rule-based without a Gemini key</small></span><span class="ap-tag">Rules</span></div>
+              </div>
+            </div></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section statement" id="record" aria-labelledby="record-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="record-h">Built on the challenge’s PM2.5 record. <span class="muted">Every figure on the dashboard comes from these files.</span></h2>
+      </div>
+      <div class="grid fill" data-moment="counter-rolls">
+        <div class="span-3"><p class="t-stat">4</p><p class="t-small muted">monitoring stations, two run by IITM and two by BMC</p></div>
+        <div class="span-3"><p class="t-stat">615</p><p class="t-small muted">days of daily PM2.5 history, from February 2025</p></div>
+        <div class="span-3"><p class="t-stat">648</p><p class="t-small muted">hours per station with both model forecasts</p></div>
+        <div class="span-3"><p class="t-stat">1,056</p><p class="t-small muted">hours of Open-Meteo weather for the city</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="map" aria-labelledby="map-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-5 stack-6">
+          <h2 id="map-h">Every station on one map</h2>
+          <p class="t-lead">Four monitors from Borivali East to Shivaji Nagar, each coloured by its CPCB category. Click a station and the whole dashboard follows it.</p>
+          <ul class="stack-3 t-small">
+            <li>Google Maps when a key is set</li>
+            <li>A built-in map of the coast with no key</li>
+            <li>Google Air Quality readings beside each station</li>
+          </ul>
+          <a class="link" href="app/">Open the station map</a>
+        </div>
+        <div class="frame frame--square frame--photo span-6 start-7">
+          <img class="frame__img" src="shots/map.png" alt="The AeroPulse map panel: the Mumbai coastline with Borivali East, Malad West, Byculla and Shivaji Nagar marked in their category colours" loading="lazy" data-source="client" data-subject="the AeroPulse station map">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section g2m" id="questions" aria-labelledby="questions-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-5 stack-4">
+          <h2 id="questions-h">Questions</h2>
+          <p>About the data, the models and what runs without keys.</p>
+          <ul class="svc">
+            <li><span>Google Maps<small>Station map</small></span><span class="ic-tile" data-icon="google-maps"><img class="ic" src="assets/icons/google-maps.svg" alt="" width="26" height="26"></span></li>
+            <li><span>Google Air Quality API<small>Readings near each station</small></span><span class="ic-tile" data-icon="google-cloud"><img class="ic" src="assets/icons/google-cloud.svg" alt="" width="26" height="26"></span></li>
+            <li><span>Gemini<small>Advisory text</small></span><span class="ic-tile" data-icon="gemini"><img class="ic" src="assets/icons/gemini.svg" alt="" width="26" height="26"></span></li>
+          </ul>
+        </div>
+        <div class="faq span-6 start-7">
+          <div class="faq__item"><h3>Does it need API keys?</h3><p>No. Without keys you get the built-in map, estimated Google readings and a rule-based advisory, each labelled.</p></div>
+          <div class="faq__item"><h3>Where is the PM2.5 data from?</h3><p>IITM and BMC monitors, via the Zindi challenge dataset. Weather is from Open-Meteo.</p></div>
+          <div class="faq__item"><h3>How fresh are the forecasts?</h3><p>Readings stop at 10 Nov 2026, 09:00 IST. Forecasts run to 21 Nov.</p></div>
+          <div class="faq__item"><h3>What are Submission 1 and 2?</h3><p>Our two entries: Submission 1 blends CatBoost and LightGBM equally, Submission 2 is CatBoost alone.</p></div>
+          <div class="faq__item"><h3>Is the advisory written by AI?</h3><p>With a Gemini key, yes, and the model is named. Otherwise fixed rules write it.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing g2m" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--type">
+      <div class="section-head">
+        <h2 id="close-h">Check the air at four Mumbai stations</h2>
+        <p>No sign-in, and it runs without API keys.</p>
+      </div>
+      <a class="btn btn--primary btn--xl btn--wide" href="app/">Open the dashboard<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-6 stack-4">
+          <a class="nav__logo" href="#top"><span class="mark mark--initial" aria-hidden="true">A</span>Mumbai AeroPulse</a>
+          <p class="footer__lede">PM2.5 forecasts and advisories for Mumbai.</p>
+        </div>
+        <div class="span-2 footer__col"><h3>Product</h3><ul><li><a href="#features">Features</a></li><li><a href="#top">Overview</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Map</h3><ul><li><a href="#map">Stations</a></li><li><a href="#forecast">Forecast</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Data</h3><ul><li><a href="#record">Record</a></li><li><a href="#questions">Questions</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 Mumbai AeroPulse · Zindi Air Quality Challenge, Creative Track</span>
+        <div class="socials"></div>
+        <span class="t-small muted">Product names and logos are trademarks of their owners.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<nav class="actionbar" aria-label="Quick actions">
+  <a class="btn btn--primary" href="app/">Open the dashboard</a>
+</nav>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+</body>
+</html>

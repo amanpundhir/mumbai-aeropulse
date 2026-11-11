@@ -1,0 +1,115 @@
+Mumbai PM2.5 Challenge — Data Analysis & Modelling Strategy
+Nov 10, 2026 · @Aman
+1. What the competition actually scores
+Only the 192 station-hours of 11–12 Nov 2026 decide the final rank; the public leaderboard is now scoring data already in Train.csv. Every design choice below follows from that.
+Fact
+Consequence
+Private evaluation = 11–12 Nov 2026 only (192 rows, 48 per station). Everything else in the 2,592-row grid is unscored or a dead public window.
+Optimise one thing: a 2-day forecast for 4 stations. Public LB is noise.
+Current public window (5–6 Nov) is already inside Train.csv.
+The public leaderboard is meaningless/leaky now. Do not chase it.
+The provided Train.csv ends 9 Nov 07:00 IST (48,133 rows = the 9 Nov update, not the 10 Nov 09:00 final).
+Download the final update first; it may add 9–10 Nov hours and shorten the horizon.
+From 9 Nov 07:00 to the private window = 41 to 89 hours ahead.
+Medium-range forecast. Lag-1 features are useless; the model must learn "given the state at origin, what happens 2–4 days later."
+Metric is RMSE.
+Predict the conditional mean, not the median; shrink toward climatology at long horizons; one 300 µg/m³ miss costs more than fifty 10 µg/m³ misses.
+Only observed station-hours are scored (Nov 3–4 had 92 valid of 192). ~28% of hours missing in the last 30 days.
+Nothing to exploit; just make sure every row has a sane value.
+Deadline 10 Nov 23:59 IST. Pick 2 final submissions. Top-10 must submit reproducible, seeded, open-source code within 48 h.
+Favour simple, robust, seeded pipelines over exotic ones.
+2. What the data looks like
+Diwali (8 Nov 2026) is the single biggest factor: the private window is Diwali +3/+4 days, and the 9 Nov tail in Train must not leak into lag features.
+Diwali evidence. Nov 7–8 are entirely absent from Train. Nov 9 02:00–07:00 shows the firecracker tail: Malad 591→65, Byculla 351→111, Shivaji Nagar 152→90 µg/m³. The 2025 analog (Diwali 20 Oct 2025) decays as follows:
+Day relative to Diwali 2025
+Daily mean range across stations (µg/m³)
+Eve / day
+97–374
++1
+89–167
++2 / +3 (equivalent of 11–12 Nov)
+43–65, back to or below pre-festival baseline
++4 onward
+20–38 (unusually clean spell)
+Anchor level should come from the clean pre-Diwali days (5–6 Nov: city mean ~45–49) plus the 2025 decay, with an explicit days_since_diwali feature.
+Sensor garbage that will wreck RMSE training if left in:
+Max pm25 = 241,587; 58 rows > 500; 19 flagged > 1,000. Raw Shivaji Nagar std is 2,458 and raw autocorrelation is ~0.
+566 exact zeros (330 Shivaji Nagar, 175 Malad); zeros are physically impossible per the data partner. Treat as missing.
+1.3% of hours exactly repeat the previous hour (stuck-sensor symptom).
+Clean rule: drop ≤ 0, cap or drop > ~400–500 (real Mumbai extremes rarely exceed ~350 outside Diwali night), optionally drop runs of ≥ 3 identical values.
+After cleaning the signal is strong and structured:
+Autocorrelation at 48 h: 0.52–0.73; 72 h: 0.46–0.70; 96 h: 0.45–0.65. Level persistence still carries information at the target horizon.
+Clear diurnal cycle: night peak ~58 (00–02 h), afternoon trough ~41 (15–16 h); 24 h autocorrelation bump of 0.61–0.80.
+Cross-station correlation 0.65–0.85 over the last 60 days: pool stations and use other stations' recent levels as features.
+Station regimes differ: Borivali is stablest (recent std 9–12), Malad and Byculla are spiky, Shivaji Nagar is highest in winter (Nov 2025 mean 76 vs 27–44 elsewhere).
+Seasonal drift: daily city mean fell from ~60 (mid-Oct) to 33–36 (late Oct / early Nov), climbing back to 45–49 by 5–6 Nov. November opens Mumbai's winter inversion season, so a slight upward drift is the prior.
+available_at lag: median ~89 h between observation and availability. The 2–3 day gap is deliberate; validation must replicate it.
+Alignment gotcha. Train timestamp_ist marks the end of the hour; Test IDs also use the end time (T0100 = start 00:00, end 01:00). Shift both or neither.
+3. Validation design
+Rolling-origin backtests that exactly mimic the final setup are worth more than any model choice.
+Origin = day D at 07:00; forecast D+2 00:00 through D+3 23:00 (horizons 41–89 h).
+Use 15–25 origins: every 2–3 days through Oct–Nov 2025 and Sep–Nov 2026.
+Weight the Diwali-2025 analog origin heavily: 22 Oct 2025 07:00 forecasting 24–25 Oct 2025.
+Score RMSE on raw (uncleaned) targets, as the organiser does; train on cleaned targets.
+Fit ensemble weights on these backtests, never on the public leaderboard.
+Never use random K-fold or a split without the 2-day gap; both look great and fail.
+4. External data worth pulling
+Two free, public sources are legitimately available at prediction time (forecasts issued before 11 Nov), so no leakage. If time is short, take the second one first.
+Source
+What it gives
+Use
+Open-Meteo Weather API (listed on ClimateVerse)
+Hourly temperature, RH, wind speed/direction, pressure, precipitation, boundary-layer height; historical archive for training, forecast endpoint for 11–12 Nov
+Features at the target hour. Wind speed and PBLH are the two strongest physical drivers of PM2.5 dilution.
+Open-Meteo Air Quality API (CAMS)
+Hourly PM2.5 forecast out to 5 days plus a historical archive
+A physics-based numerical model: use as a feature and as a bias-corrected ensemble member. Highest-leverage input; few competitors will use it.
+5. The models, ranked
+LightGBM on anchored lag, calendar and weather features is the primary model; CatBoost, a decayed-persistence baseline and a calibrated CAMS forecast are the ensemble partners.
+Model A: LightGBM, direct multi-horizon, anchored lag features (primary)
+Why best: gradient boosting on hand-built lag/calendar/weather features has won essentially every Zindi/Kaggle hourly-pollution competition. It handles mixed feature types, missing values natively, nonlinear interactions (hour × station × wind), and trains in seconds, so 20+ backtests fit before the deadline.
+Framing: one pooled model across stations; each training row = (origin time, station, target hour) with horizon_h as a feature, built only from data available at origin.
+Feature group
+Features
+Anchor (at origin)
+Last observed value; mean/median/std/min/max of last 24 h, 48 h, 72 h; same-hour-of-day mean over last 3 and 7 days; last-24 h trend slope; hours since last valid observation
+Cross-station
+City-wide last-24 h mean; other 3 stations' last-24 h means
+Calendar
+Hour (sin/cos), day of week, weekend, day of year, days_since_diwali (plus 2025 analog), is_post_diwali_window
+Station
+Categorical ID; station climatology for that calendar month and hour
+External (at target hour)
+Weather forecast: wind speed/direction, RH, temperature, PBLH, precipitation; CAMS PM2.5
+Target: cleaned pm25 on the raw scale. Log transform optimises the median and under-predicts means, which hurts RMSE. If spikes dominate, compare huber or tweedie objectives on backtests.
+Starting parameters: objective=regression, learning_rate=0.03, num_leaves=31–63, min_data_in_leaf=50–100, feature_fraction=0.7, bagging_fraction=0.8, bagging_freq=1, lambda_l2=1–5, n_estimators≈1500–3000 with early stopping on the latest backtest fold, fixed seed. Average 3–5 seeds.
+Model B: CatBoost on the same feature table (ensemble partner)
+Why: ordered boosting and symmetric trees give a different bias than LightGBM. It tends to win on small, noisy tabular data (~48k rows, 4 stations) and handles station_id, hour and day-of-week as native categoricals. Typically 0.2–0.5 RMSE better alone than LightGBM on noisy series; the blend reliably beats either.
+Parameters: loss_function=RMSE, depth=6–8, learning_rate=0.03, l2_leaf_reg=3–10, iterations≈3000 with early stopping, fixed random_seed, cat_features=[station, hour, dow].
+Model C: Decayed-persistence × diurnal-profile baseline (RMSE safety net)
+Why: at 41–89 h a well-tuned statistical forecast is hard to beat and nearly impossible to blow up. Prediction = per-station hourly profile (last 2–3 clean weeks) scaled to a level that mixes the station's last-72 h clean mean with its November climatology, the climatology weight rising with horizon (decay rate fitted on backtests). Add the post-Diwali multiplier learned from 2025 (+3/+4 days ≈ 0.9–1.0× baseline).
+Zero over-fitting risk, zero leakage, five minutes to build. Its main value is pulling the tree models back toward sane levels when their lag features are contaminated by the Diwali tail.
+Model D: Bias-corrected CAMS PM2.5 forecast
+Why: a different information source, not just a different algorithm. A chemistry-transport model driven by weather has the most decorrelated errors of anything available, which is where ensembles gain most. CAMS is systematically biased at Indian urban stations (usually under-predicts), so fit a per-station linear or small-LightGBM calibration (CAMS value, hour, station → observed) on the historical archive. Also feed the CAMS value into Models A and B as a feature; if the archive download is slow, use it as a feature only.
+Model E (optional, only if A–D are done by ~18:00): Ridge/ElasticNet, or Random Forest per the starter
+Why: a linear model extrapolates smoothly where trees plateau, and is the natural stacker. Use it as a fourth blend member or as the meta-learner over A–D (fit on backtest out-of-fold predictions, non-negative coefficients). Skip deep learning (GRU, N-BEATS, TFT): 4 stations × ~20 months is too little data, 12 hours is too little time, and reproducibility review punishes flaky training.
+6. The winning combination
+Final blend, weights fitted on the rolling backtests (rough starting point), then clipped to [0, ~300]:
+\hat{y} = 0.35\,\text{LightGBM}_{\text{seed-avg}} + 0.30\,\text{CatBoost} + 0.20\,\text{DecayedPersistence} + 0.15\,\text{CalibratedCAMS}
+Post-processing that typically buys a few RMSE points:
+Shrink toward station climatology by horizon: pred = α(h)·model + (1 − α(h))·clim, with α falling from ~0.9 at 41 h to ~0.7 at 89 h; fit α on backtests.
+Night-time floor: 00–03 h predictions ≥ the afternoon ones for the same station and day (diurnal consistency).
+Never predict 0 or anything above ~300 for 11–12 Nov. Expected reality is ~35–60 µg/m³.
+The 2 selected submissions:
+The full blend.
+The same blend with shrinkage toward climatology dialled up (more conservative). If the private window is quiet, both do well; if there is a surprise, the conservative one caps the damage.
+7. Risk checklist
+☐ Download the 10 Nov 09:00 Train.csv before anything else.
+☐ Keep the 9 Nov Diwali spike out of "last value / last-24 h mean" features; otherwise predictions of 150+ for 11–12 Nov.
+☐ Remove the 241,587 and 75,203 rows (and all > ~500) before training.
+☐ Validate with rolling origins and the 2-day gap, never random K-fold.
+☐ Treat hour-end timestamps consistently between Train and Test IDs.
+☐ Fit ensemble weights on backtests, not on the public leaderboard.
+☐ Fix every seed (LightGBM, CatBoost, numpy); the top-10 code review reruns the code and expects the exact score.
+☐ Skip AdditionalHistory.zip (unmapped station IDs); note it as "explored, not used" in the write-up.
+Not checked: AdditionalHistory.zip and the starter notebook were not attached, so this analysis covers the main files only.
